@@ -4,6 +4,13 @@ import numpy as np
 import random
 from single_step import compare_models
 from torch.utils.tensorboard import SummaryWriter
+import argparse
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compare_updates", type=int, default=1000)
+    parser.add_argument("--run_name", default="run")
+    return parser.parse_args()    
+
 run_name = "model_comparison"
 writer = SummaryWriter(f'runs/{run_name}')
 # 固定种子
@@ -16,4 +23,6 @@ np.random.seed(seed)
 random.seed(seed)
 torch.backends.cudnn.deterministic = True
 if __name__ == '__main__':
-    compare_models(writer=writer, run_name=run_name)
+    args = get_args()
+    print('model comparison')
+    compare_models(writer=writer, run_name=args.run_name, num_updates=args.compare_updates)
