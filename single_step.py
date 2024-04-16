@@ -4,7 +4,6 @@ import torchvision
 import flowvision
 import numpy as np
 import random
-import pandas as pd
 from tqdm import tqdm
 from utils import Timer
 def compare_models(writer, run_name, num_updates=1):
@@ -73,15 +72,3 @@ def compare_models(writer, run_name, num_updates=1):
         writer.add_scalars('Forward Time', {'PyTorch': torch_time, 'OneFlow': flow_time}, step)
         writer.add_scalars('Backward Time', {'PyTorch': torch_backward_time, 'OneFlow': flow_backward_time}, step)
     writer.close()
-
-    # CSV 文件保存
-    data = {
-        "Framework": ["PyTorch", "OneFlow"],
-        "Forward_Time": [torch_time, flow_time],
-        "Backward_Time": [torch_backward_time, flow_backward_time],
-        "Loss": [tloss.item(), floss.numpy()]
-    }
-    df = pd.DataFrame(data)
-    df.to_csv(f"runs/{run_name}.csv", index=False)
-
-    print("Data saved to CSV and TensorBoard.")
