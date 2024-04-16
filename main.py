@@ -14,7 +14,7 @@ def get_args():
     parser.add_argument("--train_epochs", type=int, default=3)
     parser.add_argument("--run_name", default="run0")
     parser.add_argument("--wandb", action='store_true')
-    parser.add_argument('--stage', type=int, choices=[0,1,2])
+    parser.add_argument('--stage', type=int, choices=[0,1,2], required=True)
     return parser.parse_args()    
 
 # 固定种子
@@ -43,8 +43,9 @@ if __name__ == '__main__':
     if args.stage == 0:
         print('model comparison')
         compare_models(writer=writer, num_updates=args.compare_updates)
-    print('Training OneFlow')
-    serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=True)
-    # TODO This can be run in a separate process in parallel to oneflow.
-    print('Training Torch')
-    serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=False)
+    elif args.stage == 1:
+        print('Training OneFlow')
+        serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=True)
+    elif args.stage == 2:
+        print('Training Torch')
+        serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=False)
