@@ -3,6 +3,7 @@ import oneflow as flow
 import numpy as np
 import random
 from single_step import compare_models
+from multi_step import serious_train
 from utils import SeparateWriter
 import argparse
 def get_args():
@@ -25,3 +26,8 @@ if __name__ == '__main__':
     writer = SeparateWriter(args.run_name)
     print('model comparison')
     compare_models(writer=writer, run_name=args.run_name, num_updates=args.compare_updates)
+    print('Training OneFlow')
+    serious_train(enable_oneflow=True)
+    # This can be run in a separate process in parallel to oneflow.
+    print('Training Torch')
+    serious_train(enable_oneflow=False)
