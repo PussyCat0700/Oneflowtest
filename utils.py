@@ -1,5 +1,7 @@
 import time
 import numpy as np
+import torch
+import oneflow
 from torch.utils.tensorboard import SummaryWriter
 
 class Timer:
@@ -24,11 +26,32 @@ class Timer:
         return total
     
 class SeparateWriter:
+    BOTH = "both"
+    ONEFLOW_ONLY = "oneflow_only"
+    TORCH_ONLY = "torch_only"
+    LOGMODES = [BOTH, ONEFLOW_ONLY, TORCH_ONLY]  # only valid for single
     def __init__(self, run_name) -> None:
         self.writer = SummaryWriter(f'runs/{run_name}')
+        self.logmode = self.BOTH
     
     def write_log(self, logstr, torch_data, oneflow_data, steps):
         self.writer.add_scalars(logstr, {'PyTorch': torch_data, 'OneFlow': oneflow_data}, steps)
+        
+    def write_log_single(self, logstr, data, steps):
+        if self.logmode == self.TORCH_ONLY:
+            key = "PyTorch"
+            if isinstance(data, torch.Tensor):
+                data = data.item()
+        else:
+            key = "OneFlow"
+            if isinstance(data, oneflow.Tensor):
+                data = data.numpy()
+        self.writer.add_scalars(logstr, {key: data}, steps)
+        
+    def set_log_mode(self, mode):
+        if mode not in self.LOGMODES:
+            raise NotImplementedError(f"got {mode=} but should be one of {self.LOGMODES}")
+        self.logmode = mode
         
     def see_diff_tensor(self, logstr, torch_data:np.ndarray, oneflow_data:np.ndarray, steps):
         multi_dims = isinstance(torch_data, np.ndarray)

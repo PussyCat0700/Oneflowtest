@@ -6,10 +6,14 @@ from single_step import compare_models
 from multi_step import serious_train
 from utils import SeparateWriter
 import argparse
+import wandb
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--compare_updates", type=int, default=1000)
+    parser.add_argument("--train_epochs", type=int, default=3)
     parser.add_argument("--run_name", default="run0")
+    parser.add_argument("--wandb", action='store_true')
     return parser.parse_args()    
 
 # 固定种子
@@ -23,11 +27,14 @@ random.seed(seed)
 torch.backends.cudnn.deterministic = True
 if __name__ == '__main__':
     args = get_args()
+    enable_wandb = args.wandb
+    if enable_wandb:
+        wandb.init(project=args.run0, sync_tensorboard=True)
     writer = SeparateWriter(args.run_name)
     print('model comparison')
     compare_models(writer=writer, run_name=args.run_name, num_updates=args.compare_updates)
     print('Training OneFlow')
-    serious_train(enable_oneflow=True)
-    # This can be run in a separate process in parallel to oneflow.
+    serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=True)
+    # TODO This can be run in a separate process in parallel to oneflow.
     print('Training Torch')
-    serious_train(enable_oneflow=False)
+    serious_train(writer=writer, epochs=args.train_epochs, enable_oneflow=False)
