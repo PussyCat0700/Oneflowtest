@@ -28,9 +28,11 @@ torch.backends.cudnn.deterministic = True
 if __name__ == '__main__':
     args = get_args()
     enable_wandb = args.wandb
+    logging_dir = f'runs/{args.run_name}'
     if enable_wandb:
-        wandb.init(project=args.run0, sync_tensorboard=True)
-    writer = SeparateWriter(args.run_name)
+        wandb.tensorboard.patch(root_logdir=logging_dir)
+        wandb.init(project=args.run_name)
+    writer = SeparateWriter(logging_dir=logging_dir)
     print('model comparison')
     compare_models(writer=writer, run_name=args.run_name, num_updates=args.compare_updates)
     print('Training OneFlow')

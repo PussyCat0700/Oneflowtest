@@ -30,8 +30,8 @@ class SeparateWriter:
     ONEFLOW_ONLY = "oneflow_only"
     TORCH_ONLY = "torch_only"
     LOGMODES = [BOTH, ONEFLOW_ONLY, TORCH_ONLY]  # only valid for single
-    def __init__(self, run_name) -> None:
-        self.writer = SummaryWriter(f'runs/{run_name}')
+    def __init__(self, logging_dir) -> None:
+        self.writer = SummaryWriter(logging_dir)
         self.logmode = self.BOTH
     
     def write_log(self, logstr, torch_data, oneflow_data, steps):
