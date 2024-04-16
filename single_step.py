@@ -6,7 +6,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 from utils import SeparateWriter, Timer
-def compare_models(writer:SeparateWriter, run_name, num_updates=1):
+def compare_models(writer:SeparateWriter, num_updates=1):
     # 构建模型并放到GPU上
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tmodel = torchvision.models.resnet50().to(device)

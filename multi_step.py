@@ -42,7 +42,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
     test_data_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
     if enable_oneflow:
-        model = flowvision.models.resnet50(pretrained=True)
+        model = flowvision.models.resnet50()
     else:
         model = torchvision.models.resnet50().to(DEVICE)
     model.fc = nn.Linear(model.fc.in_features, 10)
