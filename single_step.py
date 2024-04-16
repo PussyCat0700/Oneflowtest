@@ -4,6 +4,14 @@ import torchvision
 import flowvision
 import numpy as np
 import random
+import pandas as pd
+from utils import Timer
+from torch.utils.tensorboard import SummaryWriter
+
+
+run_name = "model_comparison"
+# 初始化TensorBoard Writer
+writer = SummaryWriter(f'runs/{run_name}')
 
 # 固定种子
 seed = 123456
@@ -13,15 +21,19 @@ flow.manual_seed(seed)
 flow.cuda.manual_seed_all(seed)
 np.random.seed(seed)
 random.seed(seed)
-torch.backends.cudnn.deterministic=True
+torch.backends.cudnn.deterministic = True
 
-# 构建模型
-tmodel = torchvision.models.resnet50()
-fmodel = flowvision.models.resnet50()
+# 构建模型并放到GPU上
+device = "cuda" if torch.cuda.is_available() else "cpu"
+tmodel = torchvision.models.resnet50().to(device)
+fmodel = flowvision.models.resnet50().to(device)
+timer_t = Timer()
+timer_f = Timer()
+
 
 # 拷贝参数
-state_dict = {k:v.numpy() for k,v in tmodel.state_dict().items()}  # must be numpied in oneflow v0.9.0
-fmodel.load_state_dict(state_dict) # <All keys matched successfully>
+state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
+fmodel.load_state_dict({k: flow.tensor(v) for k, v in state_dict.items()})
 
 # 损失函数和优化器
 lr = 1e-3
@@ -30,40 +42,69 @@ floss_fn = flow.nn.CrossEntropyLoss()
 toptimizer = torch.optim.Adam(tmodel.parameters(), lr=lr)
 foptimizer = flow.optim.Adam(fmodel.parameters(), lr=lr)
 
-# 输入
-tinput = torch.rand((4, 3, 256, 256))
-finput = flow.tensor(tinput)
-tgt = torch.rand((4,1000))
+# 输入和目标
+tinput = torch.rand((4, 3, 256, 256), device=device)
+finput = flow.tensor(tinput.cpu().numpy()).to(device)
+tgt = torch.randint(0, 1000, (4,), device=device)
+tgt_flow = flow.tensor(tgt.cpu().numpy()).to(device)
 
-# 运行
-tout = tmodel(tinput)
-fout = fmodel(finput)
+# Warm-up phase (not timed)
+print('Warming up to avoid cache and state influence.')
+for _ in range(10):
+    _ = tmodel(tinput)
+    torch.cuda.synchronize()
 
-# 输出结果比较
-tout_data = flow.tensor(tout.data)
-fout_data = fout.data
-fout_data.equal(tout_data) # True
+    _ = fmodel(finput)
+    flow.cuda.synchronize()
 
-# loss比较
+# 测量前向传播时间
+torch.cuda.synchronize()
+with timer_t.time():
+    tout = tmodel(tinput)
+    torch.cuda.synchronize()
+    torch_time = timer_t.get_and_reset()
+
+flow.cuda.synchronize()
+with timer_f.time():
+    fout = fmodel(finput)
+    flow.cuda.synchronize()
+    flow_time = timer_f.get_and_reset()
+
+# 计算loss
 tloss = tloss_fn(tout, tgt)
-floss = floss_fn(fout, flow.tensor(tgt))
-tloss.item() == floss.item() # True
+floss = floss_fn(fout, tgt_flow)
 
-# 梯度比较
+# 后向传播
 toptimizer.zero_grad()
-tloss.backward()
-foptimizer.zero_grad()
-floss.backward()
-tgrad = [param for param in tmodel.parameters() if param.requires_grad and param.grad is not None]
-fgrad = [param for param in fmodel.parameters() if param.requires_grad and param.grad is not None]
-assert len(tgrad)==len(fgrad)
-for i in range(len(tgrad)):
-    fgrad[i].data.equal(flow.tensor(tgrad[i].data)) # True
+with timer_t.time():
+    tloss.backward()
+    torch.cuda.synchronize()
+    torch_backward_time = timer_t.get_and_reset()
 
-# 更新后的参数比较
+foptimizer.zero_grad()
+with timer_f.time():
+    floss.backward()
+    flow.cuda.synchronize()
+    flow_backward_time = timer_f.get_and_reset()
+
+# 更新参数
 toptimizer.step()
 foptimizer.step()
-tstate_dict = tmodel.state_dict()
-fstate_dict = fmodel.state_dict()
-for key,value in tstate_dict.items():
-    fstate_dict[key].equal(flow.tensor(value)) # True
+
+# TensorBoard记录
+writer.add_scalars('Loss', {'PyTorch': tloss.item(), 'OneFlow': floss.numpy()}, 1)
+writer.add_scalars('Forward Time', {'PyTorch': torch_time, 'OneFlow': flow_time}, 1)
+writer.add_scalars('Backward Time', {'PyTorch': torch_backward_time, 'OneFlow': flow_backward_time}, 1)
+writer.close()
+
+# CSV 文件保存
+data = {
+    "Framework": ["PyTorch", "OneFlow"],
+    "Forward_Time": [torch_time, flow_time],
+    "Backward_Time": [torch_backward_time, flow_backward_time],
+    "Loss": [tloss.item(), floss.numpy()]
+}
+df = pd.DataFrame(data)
+df.to_csv(f"runs/{run_name}.csv", index=False)
+
+print("Data saved to CSV and TensorBoard.")
