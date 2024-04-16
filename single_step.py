@@ -5,8 +5,8 @@ import flowvision
 import numpy as np
 import random
 from tqdm import tqdm
-from utils import Timer
-def compare_models(writer, run_name, num_updates=1):
+from utils import SeparateWriter, Timer
+def compare_models(writer:SeparateWriter, run_name, num_updates=1):
     # 构建模型并放到GPU上
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tmodel = torchvision.models.resnet50().to(device)
@@ -45,6 +45,9 @@ def compare_models(writer, run_name, num_updates=1):
             fout = fmodel(finput)
             flow.cuda.synchronize()
             flow_time = timer_f.get_and_reset()
+        tout_data = tout.detach().cpu().numpy()
+        fout_data = fout.numpy()
+        writer.see_diff_tensor('Feature', tout_data, fout_data, step)
 
         # 计算loss
         tloss = tloss_fn(tout, tgt)
@@ -68,7 +71,7 @@ def compare_models(writer, run_name, num_updates=1):
         foptimizer.step()
 
         # TensorBoard记录
-        writer.add_scalars('Loss', {'PyTorch': tloss.item(), 'OneFlow': floss.numpy()}, step)
-        writer.add_scalars('Forward Time', {'PyTorch': torch_time, 'OneFlow': flow_time}, step)
-        writer.add_scalars('Backward Time', {'PyTorch': torch_backward_time, 'OneFlow': flow_backward_time}, step)
-    writer.close()
+        writer.write_log('Loss', tloss.item(), floss.numpy(), step)
+        writer.see_diff_tensor('Loss', tloss.item(), floss.numpy(), step)
+        writer.write_log('Forward Time', torch_time, flow_time, step)
+        writer.write_log('Backward Time', torch_backward_time, flow_backward_time, step)

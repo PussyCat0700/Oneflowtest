@@ -3,7 +3,7 @@ import oneflow as flow
 import numpy as np
 import random
 from single_step import compare_models
-from torch.utils.tensorboard import SummaryWriter
+from utils import SeparateWriter
 import argparse
 def get_args():
     parser = argparse.ArgumentParser()
@@ -22,6 +22,6 @@ random.seed(seed)
 torch.backends.cudnn.deterministic = True
 if __name__ == '__main__':
     args = get_args()
-    writer = SummaryWriter(f'runs/{args.run_name}')
+    writer = SeparateWriter(args.run_name)
     print('model comparison')
     compare_models(writer=writer, run_name=args.run_name, num_updates=args.compare_updates)

@@ -1,4 +1,6 @@
 import time
+import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 class Timer:
     def __init__(self):
@@ -20,7 +22,33 @@ class Timer:
         total = self.total_time
         self.total_time = 0
         return total
+    
+class SeparateWriter:
+    def __init__(self, run_name) -> None:
+        self.writer = SummaryWriter(f'runs/{run_name}')
+    
+    def write_log(self, logstr, torch_data, oneflow_data, steps):
+        self.writer.add_scalars(logstr, {'PyTorch': torch_data, 'OneFlow': oneflow_data}, steps)
+        
+    def see_diff_tensor(self, logstr, torch_data:np.ndarray, oneflow_data:np.ndarray, steps):
+        multi_dims = isinstance(torch_data, np.ndarray)
+        
+        if multi_dims:
+            # 计算均值差异
+            mean_difference = (torch_data - oneflow_data).mean()
 
+            # 计算标准偏差差异
+            std_deviation_difference = torch_data.std() - oneflow_data.std()
+
+            # 计算最大偏差
+            max_difference = np.abs(torch_data - oneflow_data).max()
+            self.writer.add_scalar(logstr+"△mean", mean_difference, steps)
+            self.writer.add_scalar(logstr+"△std", std_deviation_difference, steps)
+            self.writer.add_scalar(logstr+"△maxdiff", max_difference, steps)
+        else:
+            # 计算相对偏差百分比
+            relative_difference = (np.abs(torch_data - oneflow_data) / np.abs(torch_data).clip(min=1e-6)).mean() * 100
+            self.writer.add_scalar(logstr+"△percent", relative_difference, steps)
 
 if __name__ == '__main__':
     from time import sleep
