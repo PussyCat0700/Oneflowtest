@@ -15,13 +15,11 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
         import oneflow.nn as nn
         from oneflow.optim import SGD
         from oneflow.utils.data import DataLoader
-        writer.set_log_mode(SeparateWriter.ONEFLOW_ONLY)
     else:
         import torchvision.transforms as transforms
         import torch.nn as nn
         from torch.optim import SGD
         from torch.utils.data import DataLoader
-        writer.set_log_mode(SeparateWriter.TORCH_ONLY)
     train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
@@ -77,7 +75,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
                 optimizer.step()
 
                 steps += 1
-                if batch % 100 == 0:
+                if batch % 20 == 0:
                     writer.write_log_single("train/loss", loss, steps)
                     writer.write_log_single("train/epoch", epoch, steps)
                     print(f'loss: {loss:>7f}  [epoch: {epoch} {batch * BATCH_SIZE:>5d}/{dataset_size:>5d}]')
