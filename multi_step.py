@@ -1,11 +1,13 @@
 import oneflow as flow
 import torch
+import torchmetrics
 import torchvision
 import flowvision
 from flowvision.datasets import CIFAR10
 from utils import SeparateWriter
 
 BATCH_SIZE = 64
+NUM_CLASSES = 10  # CIFAR-10
 
 def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
     DEVICE = 'cuda' if flow.cuda.is_available() else 'cpu'
@@ -32,7 +34,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
-
+    # Dataset可以通用
     train_dataset = CIFAR10(root='data', train=True, transform=train_transform, download=True)
     test_dataset = CIFAR10(root='data', train=False, transform=test_transform, download=True)
 
@@ -47,19 +49,31 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
     model = model.to(DEVICE)
 
     def evaluate(model, data_loader, steps):
-        dataset_size = len(data_loader.dataset)
         model.eval()
-        num_corrects = 0
-        for images, labels in data_loader:
+        num_classes, task, average = NUM_CLASSES, "multiclass", "macro"
+        metric_collection = torchmetrics.MetricCollection({ 
+            'Accuracy': torchmetrics.Accuracy(task=task, num_classes=num_classes, average=average).to(DEVICE),
+            'Precision': torchmetrics.Precision(task=task, num_classes=num_classes, average=average).to(DEVICE), 
+            'Recall': torchmetrics.Recall(task=task, num_classes=num_classes, average=average).to(DEVICE),
+            "AUROC": torchmetrics.AUROC(task=task, num_classes=num_classes, average=average).to(DEVICE),
+        }) 
+        for batch, (images, labels) in enumerate(data_loader):
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             preds = model(images)
             if enable_oneflow:
-                num_corrects += flow.sum(flow.argmax(preds, dim=1) == labels)
-            else:
-                num_corrects += torch.sum(torch.argmax(preds, dim=1) == labels)
-
-        print('Accuracy: ', num_corrects.item() / dataset_size)
-        writer.write_log_single("eval/Accuracy", num_corrects.item() / dataset_size, steps)
+                preds = torch.from_numpy(preds.numpy()).to(DEVICE)
+                labels = torch.from_numpy(labels.numpy()).to(DEVICE)
+            preds = preds.softmax(dim=1)
+            batch_metrics = metric_collection.forward(preds, labels)
+            if batch % 20 == 0:
+                for key, value in batch_metrics.items():
+                    writer.write_log_single(f"eval/{key}(step)", value, steps)
+        
+        val_metrics = metric_collection.compute()
+        print(val_metrics)
+        for key, value in val_metrics.items():
+            writer.write_log_single(f"eval/{key}", value, steps)
+        metric_collection.reset()
 
     def train_model(model, train_data_loader, test_data_loader, loss_func, optimizer):
         dataset_size = len(train_data_loader.dataset)
