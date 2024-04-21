@@ -1,0 +1,9 @@
+flowflops==0.0.1.post2211300851
+flowvision==0.1.0
+numpy==1.24.4
+oneflow==0.9.0
+thop==0.1.1.post2209072238
+torch==2.2.2+cu118
+torchmetrics==1.3.2
+torchvision==0.17.2+cu118
+tqdm==4.66.2

@@ -6,6 +6,11 @@ import numpy as np
 import random
 from tqdm import tqdm
 from utils import SeparateWriter, Timer
+from thop import profile
+from flowflops import get_model_complexity_info
+
+BATCH_SIZE = 4
+INPUT_SHAPE = (BATCH_SIZE, 3, 256, 256)
 def compare_models(writer:SeparateWriter, num_updates=1):
     # 构建模型并放到GPU上
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -28,7 +33,7 @@ def compare_models(writer:SeparateWriter, num_updates=1):
     pbar = tqdm(range(num_updates))
     for step in pbar:
         # 输入和目标
-        tinput = torch.rand((4, 3, 256, 256), device=device)
+        tinput = torch.rand(INPUT_SHAPE, device=device)
         finput = flow.tensor(tinput.cpu().numpy()).to(device)
         tgt = torch.randint(0, 1000, (4,), device=device)
         tgt_flow = flow.tensor(tgt.cpu().numpy()).to(device)
@@ -74,4 +79,23 @@ def compare_models(writer:SeparateWriter, num_updates=1):
         writer.write_log('Loss', tloss.item(), floss.numpy(), step)
         writer.see_diff_tensor('Loss', tloss.item(), floss.numpy(), step)
         writer.write_log('Forward Time', torch_time, flow_time, step)
+        writer.write_log('Troughput (Sample per second)', BATCH_SIZE/torch_time, BATCH_SIZE/flow_time, step)
         writer.write_log('Backward Time', torch_backward_time, flow_backward_time, step)
+    
+    # FLOPs和参数量计算
+    tinput = torch.rand(INPUT_SHAPE, device=device)
+    tflops, tparams = profile(model=tmodel, inputs=(tinput,))
+    writer.write_log_single('Torch/FLOPs', tflops, None)
+    writer.write_log_single('Torch/Params', tparams, None)
+    
+    finput = flow.tensor(tinput.cpu().numpy()).to(device)
+    # 关于Eager和Graph：https://github.com/Oneflow-Inc/flow-OpCounter/blob/master/README_CN.md
+    for mode in ["eager", "graph"]:
+        fflops, fparams = get_model_complexity_info(
+            fmodel, INPUT_SHAPE,
+            as_strings=False,
+            print_per_layer_stat=False,
+            mode=mode
+        )
+        writer.write_log_single(f'OneFlow/FLOPs[{mode}]', fflops, None)
+        writer.write_log_single(f'OneFlow/Params[{mode}]', fparams, None)
