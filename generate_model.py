@@ -29,9 +29,9 @@ def generate_model(model_name="ResNet50"):
 
     elif model_name == "SEResNet50":
         tmodel = se_resnet50()
-        tmodel.last_linear = torch.nn.Linear(tmodel.last_linear.in_features, cfgs['SEResNet50']['NUM_CLASSES'])
+        tmodel.last_linear = torch.nn.Linear(2048, cfgs['SEResNet50']['NUM_CLASSES'])
         fmodel = flowvision.models.se_resnet50()
-        fmodel.last_linear = flow.nn.Lienar(fmodel.last_linear.in_features, cfgs['SEResNet50']['NUM_CLASSES'])
+        fmodel.last_linear = flow.nn.Linear(2048, cfgs['SEResNet50']['NUM_CLASSES'])
 
     elif model_name == "MobileNet":
         tmodel = torchvision.models.mobilenet_v2()
@@ -55,8 +55,8 @@ def generate_model(model_name="ResNet50"):
         tmodel = swin_tiny_patch4_window7_224()
         tmodel.head = torch.nn.Linear(768, cfgs['SwinTransformer']['NUM_CLASSES'])
         fmodel = flowvision.models.swin_tiny_patch4_window7_224()
-        fmodel.head = flow.nn.Lieanr(768, cfgs['SwinTransformer']['NUM_CLASSES'])
-        
+        fmodel.head = flow.nn.Linear(768, cfgs['SwinTransformer']['NUM_CLASSES'])
+
     elif model_name == 'EfficientNet':
         tmodel = torchvision.models.efficientnet_b2()
         tmodel.classifier = torch.nn.Sequential(torch.nn.Dropout(0.3), torch.nn.Linear(1408, cfgs['EfficientNet']['NUM_CLASSES']))

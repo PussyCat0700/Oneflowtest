@@ -13,6 +13,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
     DEVICE = 'cuda' if flow.cuda.is_available() else 'cpu'
 
     BATCH_SIZE = cfgs[model_name]['BATCH_SIZE']
+    IMAGE_SIZE = cfgs[model_name]['IMAGE_SIZE']
     NUM_CLASSES = cfgs[model_name]["NUM_CLASSES"]  # CIFAR-10
 
     if enable_oneflow:
@@ -28,12 +29,12 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
     train_transform = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.Resize(224),
+        transforms.Resize(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
     test_transform = transforms.Compose([
-        transforms.Resize(224),
+        transforms.Resize(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
@@ -67,6 +68,15 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
             if enable_oneflow:
                 preds = torch.from_numpy(preds.numpy()).to(DEVICE)
                 labels = torch.from_numpy(labels.numpy()).to(DEVICE)
+            
+            # TODO add special operation for output
+            if enable_oneflow:
+                # oneflow
+                pass
+            else:
+                # pytorch
+                pass
+
             preds = preds.softmax(dim=1)
             batch_metrics = metric_collection.forward(preds, labels)
             if batch % 20 == 0:

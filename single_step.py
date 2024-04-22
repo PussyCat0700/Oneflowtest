@@ -49,12 +49,19 @@ def compare_models(writer:SeparateWriter, num_updates=1, model_name="ResNet50"):
             tout = tmodel(tinput)
             torch.cuda.synchronize()
             torch_time = timer_t.get_and_reset()
+        if type(tout) != torch.Tensor :
+            if model_name == "Inception":
+                tout = tout.logits
 
         flow.cuda.synchronize()
         with timer_f.time():
             fout = fmodel(finput)
             flow.cuda.synchronize()
             flow_time = timer_f.get_and_reset()
+        if type(fout) != flow.Tensor:
+            if model_name == "Inception":
+                fout = fout[0]
+
         tout_data = tout.detach().cpu().numpy()
         fout_data = fout.numpy()
         writer.see_diff_tensor('Feature', tout_data, fout_data, step)
