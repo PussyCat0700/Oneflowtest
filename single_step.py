@@ -25,9 +25,9 @@ def compare_models(writer:SeparateWriter, num_updates=1, model_name="ResNet50"):
     timer_t = Timer()
     timer_f = Timer()
 
-    # 拷贝参数
-    state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
-    fmodel.load_state_dict({k: flow.tensor(v) for k, v in state_dict.items()})
+    # 拷贝参数放在模型生成里面，一些模型的参数对不上，要手动对齐。
+    # state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
+    # fmodel.load_state_dict({k: flow.tensor(v) for k, v in state_dict.items()})
 
     # 损失函数和优化器
     lr = 1e-3
