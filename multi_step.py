@@ -5,12 +5,15 @@ import torchvision
 import flowvision
 from flowvision.datasets import CIFAR10
 from utils import SeparateWriter
+from config import cfgs
+from generate_model import generate_model
 
-BATCH_SIZE = 64
-NUM_CLASSES = 10  # CIFAR-10
 
-def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
+def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_name='ResNet50'):
     DEVICE = 'cuda' if flow.cuda.is_available() else 'cpu'
+
+    BATCH_SIZE = cfgs[model_name]['BATCH_SIZE']
+    NUM_CLASSES = cfgs[model_name]["NUM_CLASSES"]  # CIFAR-10
 
     if enable_oneflow:
         import flowvision.transforms as transforms
@@ -41,11 +44,12 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool):
     train_data_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     test_data_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
 
+    # 如何保证两次跑出来的模型初始化参数一致？
     if enable_oneflow:
-        model = flowvision.models.resnet50()
+        _, model = generate_model(model_name)
     else:
-        model = torchvision.models.resnet50().to(DEVICE)
-    model.fc = nn.Linear(model.fc.in_features, 10)
+        model, _ = generate_model(model_name)
+    
     model = model.to(DEVICE)
 
     def evaluate(model, data_loader, steps):

@@ -8,17 +8,22 @@ from tqdm import tqdm
 from utils import SeparateWriter, Timer
 from thop import profile
 from flowflops import get_model_complexity_info
+from config import cfgs
+from generate_model import generate_model
 
-BATCH_SIZE = 4
-INPUT_SHAPE = (BATCH_SIZE, 3, 256, 256)
-def compare_models(writer:SeparateWriter, num_updates=1):
+def compare_models(writer:SeparateWriter, num_updates=1, model_name="ResNet50"):
+    BATCH_SIZE = cfgs[model_name]['BATCH_SIZE']
+    INPUT_SHAPE = cfgs[model_name]['INPUT_SHAPE']
+    NUM_CLASSES = cfgs[model_name]["NUM_CLASSES"]  # CIFAR-10
+
     # 构建模型并放到GPU上
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    tmodel = torchvision.models.resnet50().to(device)
-    fmodel = flowvision.models.resnet50().to(device)
+
+    tmodel, fmodel = generate_model(model_name)
+    tmodel = tmodel.to(device)
+    fmodel = fmodel.to(device)
     timer_t = Timer()
     timer_f = Timer()
-
 
     # 拷贝参数
     state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
@@ -35,7 +40,7 @@ def compare_models(writer:SeparateWriter, num_updates=1):
         # 输入和目标
         tinput = torch.rand(INPUT_SHAPE, device=device)
         finput = flow.tensor(tinput.cpu().numpy()).to(device)
-        tgt = torch.randint(0, 1000, (4,), device=device)
+        tgt = torch.randint(0, NUM_CLASSES, (BATCH_SIZE,), device=device)
         tgt_flow = flow.tensor(tgt.cpu().numpy()).to(device)
 
         # 测量前向传播时间
@@ -79,7 +84,7 @@ def compare_models(writer:SeparateWriter, num_updates=1):
         writer.write_log('Loss', tloss.item(), floss.numpy(), step)
         writer.see_diff_tensor('Loss', tloss.item(), floss.numpy(), step)
         writer.write_log('Forward Time', torch_time, flow_time, step)
-        writer.write_log('Troughput (Sample per second)', BATCH_SIZE/torch_time, BATCH_SIZE/flow_time, step)
+        # writer.write_log('Troughput (Sample per second)', BATCH_SIZE/torch_time, BATCH_SIZE/flow_time, step)
         writer.write_log('Backward Time', torch_backward_time, flow_backward_time, step)
     
     # FLOPs和参数量计算
