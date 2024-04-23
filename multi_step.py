@@ -53,7 +53,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
     
     model = model.to(DEVICE)
 
-    def evaluate(model, data_loader, steps):
+    def evaluate(model, data_loader, steps, model_name):
         model.eval()
         num_classes, task, average = NUM_CLASSES, "multiclass", "macro"
         metric_collection = torchmetrics.MetricCollection({ 
@@ -65,17 +65,11 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
         for batch, (images, labels) in enumerate(data_loader):
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             preds = model(images)
+            if model_name == "Inception" and enable_oneflow:
+                preds = preds[0]
             if enable_oneflow:
                 preds = torch.from_numpy(preds.numpy()).to(DEVICE)
                 labels = torch.from_numpy(labels.numpy()).to(DEVICE)
-            
-            # TODO add special operation for output
-            if enable_oneflow:
-                # oneflow
-                pass
-            else:
-                # pytorch
-                pass
 
             preds = preds.softmax(dim=1)
             batch_metrics = metric_collection.forward(preds, labels)
@@ -89,7 +83,7 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
             writer.write_log_single(f"eval/{key}", value, steps)
         metric_collection.reset()
 
-    def train_model(model, train_data_loader, test_data_loader, loss_func, optimizer):
+    def train_model(model, train_data_loader, test_data_loader, loss_func, optimizer, model_name):
         dataset_size = len(train_data_loader.dataset)
         steps = 0
         model.train()
@@ -97,6 +91,8 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
             for batch, (images, labels) in enumerate(train_data_loader):
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 preds = model(images)
+                if model_name == "Inception":
+                    preds = preds[0]
                 loss = loss_func(preds, labels)
                 optimizer.zero_grad()
                 loss.backward()
@@ -108,8 +104,8 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
                     writer.write_log_single("train/epoch", epoch, steps)
                     print(f'loss: {loss:>7f}  [epoch: {epoch} {batch * BATCH_SIZE:>5d}/{dataset_size:>5d}]')
 
-            evaluate(model, test_data_loader, steps)
+            evaluate(model, test_data_loader, steps, model_name)
         
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
     loss_func = nn.CrossEntropyLoss()
-    train_model(model, train_data_loader, test_data_loader, loss_func, optimizer)
+    train_model(model, train_data_loader, test_data_loader, loss_func, optimizer, model_name)

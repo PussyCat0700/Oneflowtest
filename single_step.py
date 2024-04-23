@@ -103,6 +103,8 @@ def compare_models(writer:SeparateWriter, num_updates=1, model_name="ResNet50"):
     finput = flow.tensor(tinput.cpu().numpy()).to(device)
     # 关于Eager和Graph：https://github.com/Oneflow-Inc/flow-OpCounter/blob/master/README_CN.md
     for mode in ["eager", "graph"]:
+        if model_name == "SwinTransformer" and mode == 'graph':
+            continue
         fflops, fparams = get_model_complexity_info(
             fmodel, INPUT_SHAPE,
             as_strings=False,
