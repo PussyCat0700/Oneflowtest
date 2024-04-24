@@ -57,21 +57,28 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
         model.eval()
         num_classes, task, average = NUM_CLASSES, "multiclass", "macro"
         metric_collection = torchmetrics.MetricCollection({ 
-            'Accuracy': torchmetrics.Accuracy(task=task, num_classes=num_classes, average=average).to(DEVICE),
-            'Precision': torchmetrics.Precision(task=task, num_classes=num_classes, average=average).to(DEVICE), 
-            'Recall': torchmetrics.Recall(task=task, num_classes=num_classes, average=average).to(DEVICE),
-            "AUROC": torchmetrics.AUROC(task=task, num_classes=num_classes, average=average).to(DEVICE),
+            'Accuracy': torchmetrics.Accuracy(task=task, num_classes=num_classes, average=average).to('cpu'),
+            'Precision': torchmetrics.Precision(task=task, num_classes=num_classes, average=average).to('cpu'), 
+            'Recall': torchmetrics.Recall(task=task, num_classes=num_classes, average=average).to('cpu'),
+            "AUROC": torchmetrics.AUROC(task=task, num_classes=num_classes, average=average).to('cpu'),
         }) 
         for batch, (images, labels) in enumerate(data_loader):
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
-            preds = model(images)
+            images, labels = images.to(DEVICE), labels.cpu() #.to(DEVICE)
+
+            # fixed out of memory
+            if enable_oneflow:
+                with flow.no_grad():
+                    preds = model(images)
+            else:
+                with torch.no_grad():
+                    preds = model(images)
             if model_name == "Inception" and enable_oneflow:
                 preds = preds[0]
             if enable_oneflow:
-                preds = torch.from_numpy(preds.numpy()).to(DEVICE)
-                labels = torch.from_numpy(labels.numpy()).to(DEVICE)
+                preds = torch.from_numpy(preds.numpy())#.to(DEVICE)
+                labels = torch.from_numpy(labels.numpy())#.to(DEVICE)
 
-            preds = preds.softmax(dim=1)
+            preds = preds.softmax(dim=1).cpu()
             batch_metrics = metric_collection.forward(preds, labels)
             if batch % 20 == 0:
                 for key, value in batch_metrics.items():
