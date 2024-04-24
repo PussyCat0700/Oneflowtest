@@ -98,10 +98,8 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
             for batch, (images, labels) in enumerate(train_data_loader):
                 images, labels = images.to(DEVICE), labels.to(DEVICE)
                 preds = model(images)
-                # print(preds.shape)
                 if model_name == "Inception":
                     preds = preds[0]
-                print(preds.shape)
                 loss = loss_func(preds, labels)
                 optimizer.zero_grad()
                 loss.backward()
