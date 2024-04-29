@@ -7,3 +7,17 @@
     - stage 2 (training)：正式在CIFAR-10上训练10个epoch（oneflow）。记录硬件占用和相关指标。
     - stage 3 (training)：正式在CIFAR-10上训练10个epoch（torch）。记录硬件占用和相关指标。
     - 后面需要加入更多模型测试的时候三个stage都要拉通跑一遍，可以删掉这个参数拉通三个stage全跑了
+
+# Oneflow 安装
+```bash
+python3 -m pip install --upgrade pip #--user， pip 24.0
+python3 -m pip install oneflow  # 0.9.0
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118  # torch 2.2.2+cu118
+pip install flowvision==0.2.1
+pip install tensorboard
+pip install thop
+pip install flowflops
+pip install torchmetrics
+pip install wandb
+pip install scipy
+```
