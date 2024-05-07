@@ -60,3 +60,11 @@ cfgs['EfficientNet'] = {
     "INPUT_SHAPE" : (32, 3, 256, 256),
     "NUM_CLASSES": 10, # CIFAR-10
 }
+
+cfgs['BERT-Large'] = {
+    "BATCH_SIZE" : 32,
+    "NUM_CLASSES": 9,
+    "TEXT_LENGTH": 56,
+    "VOCAB_SIZE": 30522,
+    "INPUT_SHAPE" : (32, 56),
+}

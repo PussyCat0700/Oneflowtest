@@ -4,6 +4,11 @@ import torch
 import oneflow
 from torch.utils.tensorboard import SummaryWriter
 
+def oneflow_to_global(tensor):
+    # 不加to_global在过embedding时会报错，解决方案参考https://github.com/Oneflow-Inc/oneflow/pull/8894
+    from libai.utils import distributed as dist
+    return tensor.to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([oneflow.sbp.broadcast, oneflow.sbp.split(0)]))
+
 class Timer:
     def __init__(self):
         self.start_time = None

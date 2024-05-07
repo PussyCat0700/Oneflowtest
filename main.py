@@ -2,8 +2,6 @@ import torch
 import oneflow as flow
 import numpy as np
 import random
-from single_step import compare_models
-from multi_steps import image_classification, text_classification
 from utils import SeparateWriter
 import argparse
 import wandb
@@ -33,9 +31,15 @@ if __name__ == '__main__':
         print(f"Model {args.model} not implemented yet")
         raise NotImplementedError()
     if args.model in cfgs['image_classification']:
-        serious_train = image_classification.serious_train
+        from multi_steps import image_classification as m_imc
+        from single_steps import image_classification as s_imc
+        serious_train = m_imc.serious_train
+        compare_models = s_imc.compare_models
     elif args.model in cfgs['token_classification']:
-        serious_train = text_classification.serious_train
+        from multi_steps import text_classification as m_txc
+        from single_steps import text_classification as s_txc
+        serious_train = m_txc.serious_train
+        compare_models = s_txc.compare_models
     enable_wandb = args.wandb
     args.run_name = args.model
     if args.stage == 0:
