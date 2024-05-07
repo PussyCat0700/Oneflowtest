@@ -1,15 +1,19 @@
 # used to generate two same model.
 
+import libai
 import oneflow as flow
 import flowvision
 import torch
 import torchvision
+import transformers
 from config import cfgs
 
 from pymodels.seresnet50 import se_resnet50
 from pymodels.swin_tiny import swin_tiny_patch4_window7_224
+from pymodels.classification_models import BertForClassificationLiBai, BertForClassificationTorch
 
 def generate_model(model_name="ResNet50"):
+    strict_mode = True
     if model_name not in cfgs['model_name']:
         print(f"Model {model_name} has not implement yet.")
         raise NotImplementedError()
@@ -62,7 +66,26 @@ def generate_model(model_name="ResNet50"):
         tmodel.classifier = torch.nn.Sequential(torch.nn.Dropout(0.3), torch.nn.Linear(1408, cfgs['EfficientNet']['NUM_CLASSES']))
         fmodel = flowvision.models.efficientnet_b2()
         fmodel.classifier = flow.nn.Sequential(flow.nn.Dropout(0.3), flow.nn.Linear(1408, cfgs['EfficientNet']['NUM_CLASSES']))
+        
+    elif model_name == 'BERT-Large':
+        # TODO LiBai has a few params in encoder with different naming in torch. Skipped.
+        strict_mode = False
+        from multi_steps.detailed_configs.bert_large import cfg as bert_cfg
+        tmodel = BertForClassificationTorch(bert_cfg)
+        fmodel = BertForClassificationLiBai(bert_cfg)  # forward params: (input_ids, attention_mask, tokentype_ids=None, labels=None,)
+        
+    # elif model_name == 'T5':
+    #     tmodel = transformers.T5ForTokenClassification()
+    #     fmodel = libai.models.T5Model()
+        
+    # elif model_name == 'GPT2':
+    #     tmodel = transformers.GPT2ForTokenClassification()
+    #     fmodel = libai.models.GPTModel()
+    
+    # elif model_name == 'LLaMa-7B':
+    #     tmodel = transformers.LlamaModel()
 
     state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
-    fmodel.load_state_dict({k: flow.tensor(v) for k, v in state_dict.items()})
+    # 不加to_global在拷贝BERT-Large参数时会报错，解决方案参考https://github.com/Oneflow-Inc/oneflow/pull/8894
+    fmodel.load_state_dict({k: flow.tensor(v).to_global(sbp=flow.sbp.broadcast, placement=flow.env.all_device_placement("cuda")) for k, v in state_dict.items()}, strict=strict_mode)
     return tmodel, fmodel

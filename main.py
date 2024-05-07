@@ -3,7 +3,7 @@ import oneflow as flow
 import numpy as np
 import random
 from single_step import compare_models
-from multi_step import serious_train
+from multi_steps.text_classification import serious_train
 from utils import SeparateWriter
 import argparse
 import wandb
@@ -13,7 +13,6 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--compare_updates", type=int, default=1000)
     parser.add_argument("--train_epochs", type=int, default=10)
-    parser.add_argument("--run_name", default="run0")
     parser.add_argument("--model", default='ResNet50', choices=cfgs['model_name'])
     parser.add_argument("--wandb", action='store_true')
     parser.add_argument('--stage', type=int, choices=[0,1,2], required=True)
@@ -34,6 +33,7 @@ if __name__ == '__main__':
         print(f"Model {args.model} not implemented yet")
         raise NotImplementedError()
     enable_wandb = args.wandb
+    args.run_name = args.model
     if args.stage == 0:
         args.run_name += '_compare'
     if args.stage in [1, 2]:

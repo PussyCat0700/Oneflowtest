@@ -21,3 +21,13 @@ pip install torchmetrics
 pip install wandb
 pip install scipy
 ```
+
+# NLP模型测试
+## T5和Bert-Large
+### 数据集
+使用libai的Bert dataset，下载方式请见[这个readme](https://github.com/Oneflow-Inc/libai/blob/544cb3a8574a9506a909dfd5350b9646ac4ae79e/projects/MT5/readme.md)
+### 配置文件
+见detailed_configs
+
+## GPT2和LLaMa-7B
+使用Alpaca dataset

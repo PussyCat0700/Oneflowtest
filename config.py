@@ -1,6 +1,6 @@
 cfgs = {}
 
-cfgs['model_name'] = ["ResNet50", "Inception", "SEResNet50", "MobileNet", "ShuffleNet", "DenseNet", "SwinTransformer", "EfficientNet"]
+cfgs['model_name'] = ["ResNet50", "Inception", "SEResNet50", "MobileNet", "ShuffleNet", "DenseNet", "SwinTransformer", "EfficientNet", "BERT-Large", "T5", "GPT2", "LLaMa-7B"]
 
 cfgs['ResNet50'] = {
     "BATCH_SIZE" : 32,
