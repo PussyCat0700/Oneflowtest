@@ -25,7 +25,7 @@ pip install scipy
 # NLP模型测试
 ## T5和Bert-Large
 ### 数据集
-使用libai的Bert dataset，下载方式请见[这个readme](https://github.com/Oneflow-Inc/libai/blob/544cb3a8574a9506a909dfd5350b9646ac4ae79e/projects/MT5/readme.md)
+使用conll2003作为数据集，详情见此[notebook示例](https://colab.research.google.com/github/huggingface/notebooks/blob/main/examples/token_classification.ipynb#scrollTo=vc0BSBLIIrJQ)
 ### 配置文件
 见detailed_configs
 
