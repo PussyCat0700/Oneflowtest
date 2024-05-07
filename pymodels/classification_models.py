@@ -9,7 +9,7 @@ class BertForClassificationLiBai(libai.models.BertForClassification):
     
     def forward(self, input_ids, attention_mask, tokentype_ids=None):
         outputs = self.bert(input_ids, attention_mask, tokentype_ids)
-        pooled_output = outputs[1]
+        pooled_output = outputs[0]
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
         return logits

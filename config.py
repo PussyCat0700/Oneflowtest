@@ -1,6 +1,9 @@
 cfgs = {}
 
-cfgs['model_name'] = ["ResNet50", "Inception", "SEResNet50", "MobileNet", "ShuffleNet", "DenseNet", "SwinTransformer", "EfficientNet", "BERT-Large", "T5", "GPT2", "LLaMa-7B"]
+cfgs['image_classification'] = ["ResNet50", "Inception", "SEResNet50", "MobileNet", "ShuffleNet", "DenseNet", "SwinTransformer", "EfficientNet"]
+cfgs['token_classification'] = ["BERT-Large", "T5"]
+cfgs['llm_sft'] = ["GPT2", "LLaMa-7B"]
+cfgs['model_name'] = cfgs['image_classification'] + cfgs['token_classification'] + cfgs['llm_sft']
 
 cfgs['ResNet50'] = {
     "BATCH_SIZE" : 32,

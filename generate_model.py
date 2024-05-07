@@ -85,7 +85,8 @@ def generate_model(model_name="ResNet50"):
     # elif model_name == 'LLaMa-7B':
     #     tmodel = transformers.LlamaModel()
 
+    # TODO 如果需要快速对齐权重，可参考https://github.com/Oneflow-Inc/libai/discussions/386
+    # 目前LiBai当中支持了Bert, Roberta, GPT2, T5, MT5, Swin, Swin2, Vit模型加载huggingface权重的方法，使用方式可以参考LiBai文档
     state_dict = {k: v.cpu().numpy() for k, v in tmodel.state_dict().items()}
-    # 不加to_global在拷贝BERT-Large参数时会报错，解决方案参考https://github.com/Oneflow-Inc/oneflow/pull/8894
-    fmodel.load_state_dict({k: flow.tensor(v).to_global(sbp=flow.sbp.broadcast, placement=flow.env.all_device_placement("cuda")) for k, v in state_dict.items()}, strict=strict_mode)
+    fmodel.load_state_dict(state_dict, strict=strict_mode)
     return tmodel, fmodel

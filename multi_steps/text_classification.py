@@ -4,7 +4,7 @@ import torchmetrics
 from utils import SeparateWriter
 from multi_steps.detailed_configs.bert_large import cfg as bert_cfg
 from generate_model import generate_model
-from multi_steps.detailed_configs.bert_large import tokenized_datasets, data_collator
+from multi_steps.detailed_configs.bert_large import tokenized_datasets, data_collator, IGNORE_INDEX
 # refer to https://colab.research.google.com/github/huggingface/notebooks/blob/main/examples/token_classification.ipynb#scrollTo=vc0BSBLIIrJQ
 
 def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_name='ResNet50'):
@@ -12,7 +12,6 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
 
     BATCH_SIZE = 64
     NUM_CLASSES = bert_cfg["num_labels"]
-    IGNORE_INDEX = -100
 
     if enable_oneflow:
         import oneflow.nn as nn
@@ -47,6 +46,12 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
             input_ids = batch['input_ids'].to(DEVICE)
             attention_mask = batch['attention_mask'].to(DEVICE)
             labels = batch['labels'].to('cpu')
+            if enable_oneflow:
+                # 不加to_global在过embedding时会报错，解决方案参考https://github.com/Oneflow-Inc/oneflow/pull/8894
+                # model = model.to_local()  # 没有用，libai的vocab embedding强制要求global，虽然我也不知道为啥非得这么设计
+                from libai.utils import distributed as dist
+                input_ids = input_ids.to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([flow.sbp.broadcast, flow.sbp.split(0)]))
+                attention_mask = flow.BoolTensor(attention_mask).to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([flow.sbp.broadcast, flow.sbp.split(0)]))
 
             no_grad_context = flow.no_grad if enable_oneflow else torch.no_grad
             with no_grad_context():
@@ -76,6 +81,13 @@ def serious_train(writer:SeparateWriter, epochs:int, enable_oneflow:bool, model_
                 input_ids = batch['input_ids'].to(DEVICE)
                 attention_mask = batch['attention_mask'].to(DEVICE)
                 labels = batch['labels'].to(DEVICE)
+                if enable_oneflow:
+                    # 不加to_global在过embedding时会报错，解决方案参考https://github.com/Oneflow-Inc/oneflow/pull/8894
+                    # model = model.to_local()  # 没有用，libai的vocab embedding强制要求global，虽然我也不知道为啥非得这么设计
+                    from libai.utils import distributed as dist
+                    input_ids = input_ids.to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([flow.sbp.broadcast, flow.sbp.split(0)]))
+                    attention_mask = flow.BoolTensor(attention_mask).to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([flow.sbp.broadcast, flow.sbp.split(0)]))
+                    labels = labels.to_global(placement=dist.get_layer_placement(0), sbp=dist.get_nd_sbp([flow.sbp.broadcast, flow.sbp.split(0)]))
                 
                 preds = model(input_ids, attention_mask).permute(0, 2, 1)  # (N, C, T)
                 loss = loss_func(preds, labels)

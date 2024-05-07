@@ -3,7 +3,7 @@ import oneflow as flow
 import numpy as np
 import random
 from single_step import compare_models
-from multi_steps.text_classification import serious_train
+from multi_steps import image_classification, text_classification
 from utils import SeparateWriter
 import argparse
 import wandb
@@ -32,6 +32,10 @@ if __name__ == '__main__':
     if args.model not in cfgs['model_name']:
         print(f"Model {args.model} not implemented yet")
         raise NotImplementedError()
+    if args.model in cfgs['image_classification']:
+        serious_train = image_classification.serious_train
+    elif args.model in cfgs['token_classification']:
+        serious_train = text_classification.serious_train
     enable_wandb = args.wandb
     args.run_name = args.model
     if args.stage == 0:
